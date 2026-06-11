@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comparador de Similitud Minimax (Paper SIBCON 2007)</title>
+    <!-- Google Fonts: Outfit para un look premium e Inter para legibilidad -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --accent-rm: #c2410c;
+            /* Refined Brick Red/Crimson */
+            --accent-ra: #0f766e;
+            /* Refined Forest Green/Teal */
+            --accent-ncc: #1d4ed8;
+            /* Corporate Royal Blue */
+            --text-main: #1e293b;
+            /* Dark Slate */
+            --text-muted: #576375;
+            /* Medium Slate */
+            --border-color: #e2e8f0;
+            /* Light Gray Border */
+            --border-glow: #94a3b8;
+            /* Active Gray Border */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            padding: 2.5rem 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4 {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        header {
+            text-align: center;
+            padding: 2rem;
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            color: #0f172a;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.5;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 2rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.75rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: all 0.2s ease-in-out;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .card:hover {
+            border-color: var(--border-glow);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        }
+
+        .card-title {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #0f172a;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .control-group label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        select,
+        input[type="range"] {
+            width: 100%;
+            padding: 0.75rem;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            color: var(--text-main);
+            outline: none;
+            font-family: inherit;
+            font-size: 0.9rem;
+            transition: border-color 0.15s ease;
+        }
+
+        select option {
+            background-color: #ffffff;
+            color: var(--text-main);
+        }
+
+        select:focus {
+            border-color: var(--accent-ncc);
+            background-color: #ffffff;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            cursor: pointer;
+            padding: 0;
+            border: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--accent-ncc);
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 0.85rem 1.5rem;
+            background: var(--accent-ncc);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-family: 'Outfit', sans-serif;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .btn:hover {
+            background: #1e40af;
+            transform: translateY(-1px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        /* Right Panel Layout */
+        .workspace {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .visualizers-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .canvas-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+            background: #f8fafc;
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .canvas-container h4 {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        canvas {
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            background: #111111;
+            border: 1px solid #cbd5e1;
+        }
+
+        .legend {
+            display: flex;
+            gap: 1.25rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            font-weight: 500;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        /* Results Table CSS */
+        .results-table-container {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        .results-table th {
+            padding: 0.85rem 1rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .results-table td {
+            padding: 0.95rem 1rem;
+            border-bottom: 1px solid #f1f5f9;
+            color: var(--text-main);
+            vertical-align: middle;
+        }
+
+        .results-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .results-table tbody tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+
+        .method-td {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .badge {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+
+        .stat-highlight {
+            color: var(--accent-ra);
+            font-weight: 600;
+        }
+
+        .stat-heavy {
+            color: var(--accent-rm);
+            font-weight: 600;
+        }
+
+        .info-card {
+            display: block !important;
+            background: #eff6ff;
+            border-left: 4px solid var(--accent-ncc);
+            border-radius: 0 8px 8px 0;
+            padding: 1.25rem;
+            font-size: 0.875rem;
+            line-height: 1.6;
+            color: var(--text-muted);
+        }
+
+        .info-card strong {
+            color: #0f172a;
+        }
+
+        .motion-vector-card {
+            background: #f0fdf4;
+            border-left: 4px solid var(--accent-ra);
+            border-radius: 0 8px 8px 0;
+            padding: 1rem;
+            font-size: 0.9rem;
+            display: none;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .noise-value {
+            float: right;
+            font-weight: 600;
+            color: var(--accent-ncc);
+        }
+
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .visualizers-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Comparador de Similitud Minimax</h1>
+            <p>Implementación rigurosa de las métricas propuestas en el artículo de R. Bogush y S. Maltsev (SIBCON 2007)
+                para la localización y procesamiento de video en tiempo real.</p>
+        </header>
+
+        <div class="main-grid">
+            <!-- Left Panel: Controls and Info -->
+            <div class="sidebar">
+                <div class="card">
+                    <div class="card-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3" />
+                            <path
+                                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                        </svg>
+                        Parámetros de Prueba
+                    </div>
+
+                    <div class="control-group">
+                        <label for="object-select">Objeto a Buscar</label>
+                        <select id="object-select">
+                            <option value="star">Estrella de 5 puntas</option>
+                            <option value="car">Vehículo </option>
+                            <option value="circle">Círculo Blanco</option>
+                            <option value="square">Cuadrado Relleno</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="noise-slider">Intensidad del Ruido <span class="noise-value"
+                                id="noise-val-label">0%</span></label>
+                        <input type="range" id="noise-slider" min="0" max="80" value="0">
+                    </div>
+
+                    <button class="btn" id="run-btn">Ejecutar Búsqueda</button>
+                </div>
+            </div>
+
+            <!-- Right Panel: Canvas & Results -->
+            <div class="workspace">
+                <div class="card">
+                    <div class="card-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                            <circle cx="8.5" cy="8.5" r="1.5" />
+                            <polyline points="21 15 16 10 5 21" />
+                        </svg>
+                        Señales del Sistema
+                    </div>
+                    <div class="visualizers-grid">
+                        <div class="canvas-container">
+                            <h4>Escena Principal (Frame Actual)</h4>
+                            <canvas id="scene-canvas" width="160" height="120"></canvas>
+                            <div class="legend">
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background:var(--accent-rm)"></div>R<sup>M</sup>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background:var(--accent-ra)"></div>R<sup>A</sup>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background:var(--accent-ncc)"></div>NCC
+                                </div>
+                            </div>
+                        </div>
+                        <div class="canvas-container">
+                            <h4>Plantilla a Buscar (Frame de Referencia)</h4>
+                            <canvas id="template-canvas" width="20" height="20"></canvas>
+                            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">Bloque: 20x20
+                                píxeles</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results table -->
+                <div class="card">
+                    <div class="card-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="20" x2="18" y2="10" />
+                            <line x1="12" y1="20" x2="12" y2="4" />
+                            <line x1="6" y1="20" x2="6" y2="14" />
+                        </svg>
+                        Comparativa de Métodos y Complejidad
+                    </div>
+
+                    <div class="results-table-container">
+                        <table class="results-table">
+                            <thead>
+                                <tr>
+                                    <th>Método</th>
+                                    <th>Coordenada</th>
+                                    <th>Tiempo (JS)</th>
+                                    <th>Complejidad Teórica</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr id="row-rm">
+                                    <td class="method-td">
+                                        <span class="badge" style="background: var(--accent-rm);"></span>
+                                        <strong>Minimax Multiplicativo (R<sup>M</sup>)</strong>
+                                    </td>
+                                    <td id="res-rm-pos">--</td>
+                                    <td id="res-rm-time">--</td>
+                                    <td id="res-rm-complexity" class="stat-highlight">--</td>
+                                </tr>
+                                <tr id="row-ra">
+                                    <td class="method-td">
+                                        <span class="badge" style="background: var(--accent-ra);"></span>
+                                        <strong>Minimax Aditivo (R<sup>A</sup>)</strong>
+                                    </td>
+                                    <td id="res-ra-pos">--</td>
+                                    <td id="res-ra-time">--</td>
+                                    <td id="res-ra-complexity" class="stat-highlight">--</td>
+                                </tr>
+                                <tr id="row-ncc">
+                                    <td class="method-td">
+                                        <span class="badge" style="background: var(--accent-ncc);"></span>
+                                        <strong>Correlación Cruzada (NCC)</strong>
+                                    </td>
+                                    <td id="res-ncc-pos">--</td>
+                                    <td id="res-ncc-time">--</td>
+                                    <td id="res-ncc-complexity" class="stat-heavy">--</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+
+    <script>
+        const sceneCanvas = document.getElementById('scene-canvas');
+        const sceneCtx = sceneCanvas.getContext('2d');
+        const templateCanvas = document.getElementById('template-canvas');
+        const templateCtx = templateCanvas.getContext('2d');
+
+        // Dimensiones constantes
+        const Sw = sceneCanvas.width;
+        const Sh = sceneCanvas.height;
+        const Tw = templateCanvas.width;
+        const Th = templateCanvas.height;
+        const N = Tw * Th; // Píxeles por bloque = 400
+        const E = (Sw - Tw + 1) * (Sh - Th + 1); // Posiciones de búsqueda = 14241
+
+        // Coordenadas objetivo en la escena limpia
+        const targets = {
+            star: { x: 70, y: 50 },
+            car: { x: 120, y: 20 },
+            circle: { x: 130, y: 90 },
+            square: { x: 20, y: 20 }
+        };
+
+        // Buffers de escala de grises
+        let sceneGray = new Float32Array(Sw * Sh);
+        let templateGray = new Float32Array(Tw * Th);
+
+        // Crear canvas auxiliar para cargar datos de referencia
+        const offscreenCanvas = document.createElement('canvas');
+        offscreenCanvas.width = Sw;
+        offscreenCanvas.height = Sh;
+        const offscreenCtx = offscreenCanvas.getContext('2d');
+
+        // Dibujar el objeto objetivo (caja de 20x20 píxeles)
+        function drawTargetObject(ctx, type, x, y, color = '#ffffff') {
+            ctx.fillStyle = color;
+            if (type === 'star') {
+                drawStar(ctx, x + 10, y + 10, 5, 8, 4);
+            } else if (type === 'car') {
+                ctx.fillRect(x + 2, y + 5, 16, 6); // Cuerpo
+                ctx.fillRect(x + 6, y + 2, 8, 3);
+                ctx.fillStyle = '#888888';
+                ctx.beginPath();
+                ctx.arc(x + 5, y + 12, 2.5, 0, Math.PI * 2);
+                ctx.arc(x + 15, y + 12, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (type === 'circle') {
+                ctx.beginPath();
+                ctx.arc(x + 10, y + 10, 7, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (type === 'square') {
+                ctx.fillRect(x + 3, y + 3, 14, 14);
+            }
+        }
+
+        // Inicializar imágenes sintéticas
+        function initImages() {
+            const objType = document.getElementById('object-select').value;
+
+
+            // Dibujar fondo texturizado estructurado (líneas alternadas)
+            offscreenCtx.fillStyle = '#444444';
+            offscreenCtx.fillRect(0, 0, Sw, Sh);
+            offscreenCtx.strokeStyle = '#555555';
+            offscreenCtx.lineWidth = 2;
+            for (let i = 0; i < Sw; i += 8) {
+                offscreenCtx.beginPath();
+                offscreenCtx.moveTo(i, 0);
+                offscreenCtx.lineTo(i + 15, Sh);
+                offscreenCtx.stroke();
+            }
+
+            // Dibujar las  figuras 
+            drawTargetObject(offscreenCtx, 'star', targets.star.x, targets.star.y, '#ffffff');
+            drawTargetObject(offscreenCtx, 'car', targets.car.x, targets.car.y, '#ffffff');
+            drawTargetObject(offscreenCtx, 'circle', targets.circle.x, targets.circle.y, '#ffffff');
+            drawTargetObject(offscreenCtx, 'square', targets.square.x, targets.square.y, '#ffffff');
+
+            // Copiar la escena al canvas de escena principal
+            sceneCtx.drawImage(offscreenCanvas, 0, 0);
+
+            // Determinar la coordenada del objeto seleccionado para extraer la plantilla
+            const tx = targets[objType].x;
+            const ty = targets[objType].y;
+
+            // Extraer la plantilla limpia directamente de esa región
+            const cleanData = offscreenCtx.getImageData(tx, ty, Tw, Th).data;
+            for (let i = 0; i < N; i++) {
+                templateGray[i] = cleanData[i * 4]; // Canal R
+            }
+
+            // Pintar la plantilla 
+            const tImg = templateCtx.createImageData(Tw, Th);
+            for (let i = 0; i < N; i++) {
+                const val = templateGray[i];
+                tImg.data[i * 4] = val;
+                tImg.data[i * 4 + 1] = val;
+                tImg.data[i * 4 + 2] = val;
+                tImg.data[i * 4 + 3] = 255;
+            }
+            templateCtx.putImageData(tImg, 0, 0);
+        }
+
+        // Utilidad para dibujar estrellas
+        function drawStar(ctx, cx, cy, spikes, outerRadius, innerRadius) {
+            let rot = Math.PI / 2 * 3;
+            let x = cx;
+            let y = cy;
+            let step = Math.PI / spikes;
+
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - outerRadius);
+            for (let i = 0; i < spikes; i++) {
+                x = cx + Math.cos(rot) * outerRadius;
+                y = cy + Math.sin(rot) * outerRadius;
+                ctx.lineTo(x, y);
+                rot += step;
+
+                x = cx + Math.cos(rot) * innerRadius;
+                y = cy + Math.sin(rot) * innerRadius;
+                ctx.lineTo(x, y);
+                rot += step;
+            }
+            ctx.lineTo(cx, cy - outerRadius);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // Aplicar Ruido 
+        function drawSceneWithNoise() {
+            const noiseVal = parseInt(document.getElementById('noise-slider').value) / 100;
+
+            // Redibujar escena estática limpia
+            sceneCtx.fillStyle = '#444444';
+            sceneCtx.fillRect(0, 0, Sw, Sh);
+            sceneCtx.strokeStyle = '#555555';
+            sceneCtx.lineWidth = 2;
+            for (let i = 0; i < Sw; i += 8) {
+                sceneCtx.beginPath();
+                sceneCtx.moveTo(i, 0);
+                sceneCtx.lineTo(i + 15, Sh);
+                sceneCtx.stroke();
+            }
+
+            // Dibujar todas las figuras en blanco
+            drawTargetObject(sceneCtx, 'star', targets.star.x, targets.star.y, '#ffffff');
+            drawTargetObject(sceneCtx, 'car', targets.car.x, targets.car.y, '#ffffff');
+            drawTargetObject(sceneCtx, 'circle', targets.circle.x, targets.circle.y, '#ffffff');
+            drawTargetObject(sceneCtx, 'square', targets.square.x, targets.square.y, '#ffffff');
+
+            // Inyectar ruido de Sal y Pimienta en escala de grises
+            const imgData = sceneCtx.getImageData(0, 0, Sw, Sh);
+            const pixels = imgData.data;
+
+            for (let i = 0; i < pixels.length; i += 4) {
+                let val = pixels[i]; // Tomamos el canal rojo como canal de escala de grises
+                if (Math.random() < noiseVal) {
+                    val = Math.random() < 0.5 ? 0 : 255; // Sal (255) o Pimienta (0)
+                    pixels[i] = val;
+                    pixels[i + 1] = val;
+                    pixels[i + 2] = val;
+                }
+                sceneGray[i / 4] = val;
+            }
+            sceneCtx.putImageData(imgData, 0, 0);
+        }
+
+        // Ejecutar Búsqueda en toda la escena usando las métricas del paper
+        function runSearch() {
+            drawSceneWithNoise();
+
+            const outW = Sw - Tw + 1;
+            const outH = Sh - Th + 1;
+
+            // --- 1. MINIMAX MULTIPLICATIVO (R^M) ---
+            const t0 = performance.now();
+            let bestRmX = 0, bestRmY = 0, maxRmScore = -Infinity;
+
+            for (let y = 0; y < outH; y++) {
+                for (let x = 0; x < outW; x++) {
+                    let logSum = 0;
+
+                    for (let ty = 0; ty < Th; ty++) {
+                        for (let tx = 0; tx < Tw; tx++) {
+                            // Sumamos +1 para evitar divisiones o logaritmos de cero debidos al ruido
+                            const a = sceneGray[(y + ty) * Sw + (x + tx)] + 1;
+                            const b = templateGray[ty * Tw + tx] + 1;
+
+                            const minVal = Math.min(a, b);
+                            const maxVal = Math.max(a, b);
+
+                            logSum += Math.log(minVal / maxVal);
+                        }
+                    }
+                    // Mapeo a media geométrica
+                    const score = Math.exp(logSum / N);
+                    if (score > maxRmScore) {
+                        maxRmScore = score;
+                        bestRmX = x;
+                        bestRmY = y;
+                    }
+                }
+            }
+            const timeRm = performance.now() - t0;
+
+            // --- 2. MINIMAX ADITIVO (R^A) ---
+            const t1 = performance.now();
+            let bestRaX = 0, bestRaY = 0, maxRaScore = -Infinity;
+
+            for (let y = 0; y < outH; y++) {
+                for (let x = 0; x < outW; x++) {
+                    let sum = 0;
+                    for (let ty = 0; ty < Th; ty++) {
+                        for (let tx = 0; tx < Tw; tx++) {
+                            const a = sceneGray[(y + ty) * Sw + (x + tx)] + 1;
+                            const b = templateGray[ty * Tw + tx] + 1;
+                            sum += Math.min(a, b) / Math.max(a, b);
+                        }
+                    }
+                    const score = sum / N;
+                    if (score > maxRaScore) {
+                        maxRaScore = score;
+                        bestRaX = x;
+                        bestRaY = y;
+                    }
+                }
+            }
+            const timeRa = performance.now() - t1;
+
+            // --- 3. CORRELACIÓN CRUZADA NORMALIZADA (NCC) ---
+            // Precalcular estadísticas de la plantilla
+            let sumT = 0, sumSqT = 0;
+            for (let i = 0; i < N; i++) {
+                sumT += templateGray[i];
+                sumSqT += templateGray[i] * templateGray[i];
+            }
+            const meanT = sumT / N;
+            const denT = sumSqT - N * meanT * meanT;
+
+            const t2 = performance.now();
+            let bestNccX = 0, bestNccY = 0, maxNccScore = -Infinity;
+
+            for (let y = 0; y < outH; y++) {
+                for (let x = 0; x < outW; x++) {
+                    let sumS = 0, sumSqS = 0, sumProduct = 0;
+                    for (let ty = 0; ty < Th; ty++) {
+                        for (let tx = 0; tx < Tw; tx++) {
+                            const a = sceneGray[(y + ty) * Sw + (x + tx)];
+                            const b = templateGray[ty * Tw + tx];
+                            sumS += a;
+                            sumSqS += a * a;
+                            sumProduct += a * b;
+                        }
+                    }
+                    const meanS = sumS / N;
+                    const denS = sumSqS - N * meanS * meanS;
+                    const num = sumProduct - N * meanS * meanT;
+                    const den = Math.sqrt(Math.max(0, denS * denT));
+                    const score = den === 0 ? 0.0 : (num / den);
+
+                    if (score > maxNccScore) {
+                        maxNccScore = score;
+                        bestNccX = x;
+                        bestNccY = y;
+                    }
+                }
+            }
+            const timeNcc = performance.now() - t2;
+
+            // Dibujar los recuadros de detección en el canvas
+            // Rojo para Minimax M.
+            sceneCtx.strokeStyle = '#ef4444';
+            sceneCtx.lineWidth = 2;
+            sceneCtx.strokeRect(bestRmX, bestRmY, Tw, Th);
+
+            // Verde para Minimax A.
+            sceneCtx.strokeStyle = '#10b981';
+            sceneCtx.strokeRect(bestRaX - 1, bestRaY - 1, Tw + 2, Th + 2);
+
+            // Azul para NCC
+            sceneCtx.strokeStyle = '#6366f1';
+            sceneCtx.strokeRect(bestNccX + 1, bestNccY + 1, Tw - 2, Th - 2);
+
+            // Mostrar resultados en la UI
+            document.getElementById('res-rm-pos').innerText = `(${bestRmX}, ${bestRmY})`;
+            document.getElementById('res-rm-time').innerText = `${timeRm.toFixed(2)} ms`;
+            document.getElementById('res-rm-complexity').innerText = `${formatFlops(3 * N * E)} Flops (Ahorro 50%)`;
+
+            document.getElementById('res-ra-pos').innerText = `(${bestRaX}, ${bestRaY})`;
+            document.getElementById('res-ra-time').innerText = `${timeRa.toFixed(2)} ms`;
+            document.getElementById('res-ra-complexity').innerText = `${formatFlops(3 * N * E)} Flops (Ahorro 50%)`;
+
+            document.getElementById('res-ncc-pos').innerText = `(${bestNccX}, ${bestNccY})`;
+            document.getElementById('res-ncc-time').innerText = `${timeNcc.toFixed(2)} ms`;
+            document.getElementById('res-ncc-complexity').innerText = `${formatFlops(6 * N * E)} Flops (Base)`;
+
+            // Configurar coordenadas del vector de movimiento si aplica
+            const example = document.getElementById('example-select').value;
+            if (example === 'video') {
+                const rx = referenceCoords.video.x;
+                const ry = referenceCoords.video.y;
+                document.getElementById('pos-reference').innerText = `(${rx}, ${ry})`;
+                // Usamos el resultado de Minimax Aditivo como la coordenada actual de movimiento detectada
+                document.getElementById('pos-current').innerText = `(${bestRaX}, ${bestRaY})`;
+
+                const dx = bestRaX - rx;
+                const dy = bestRaY - ry;
+                const dxSign = dx >= 0 ? '+' : '';
+                const dySign = dy >= 0 ? '+' : '';
+                document.getElementById('motion-vector').innerText = `[ΔX: ${dxSign}${dx}, ΔY: ${dySign}${dy}] px`;
+            }
+        }
+
+        function formatFlops(val) {
+            if (val >= 1000000) {
+                return `${(val / 1000000).toFixed(1)} M`;
+            }
+            return val.toLocaleString();
+        }
+
+        // Listeners e interacción
+        document.getElementById('noise-slider').addEventListener('input', (e) => {
+            document.getElementById('noise-val-label').innerText = `${e.target.value}%`;
+            drawSceneWithNoise();
+        });
+
+        document.getElementById('object-select').addEventListener('change', () => {
+            initImages();
+            runSearch();
+        });
+
+        document.getElementById('run-btn').addEventListener('click', runSearch);
+
+        // Inicio por defecto
+        initImages();
+        runSearch();
+    </script>
+</body>
+
+</html>

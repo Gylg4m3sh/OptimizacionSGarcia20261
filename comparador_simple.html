@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comparador de Similitud Minimax (Paper SIBCON 2007)</title>
-    <!-- Google Fonts: Outfit para un look premium e Inter para legibilidad -->
+    <title>Proyecto Optimización - Comparador Minimax</title>
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -17,19 +17,19 @@
             --bg-color: #f4f6f9;
             --card-bg: #ffffff;
             --accent-rm: #c2410c;
-            /* Refined Brick Red/Crimson */
+            /* Rojo */
             --accent-ra: #0f766e;
-            /* Refined Forest Green/Teal */
+            /* Verde */
             --accent-ncc: #1d4ed8;
-            /* Corporate Royal Blue */
+            /* Azul */
             --text-main: #1e293b;
-            /* Dark Slate */
+            /* Texto principal */
             --text-muted: #576375;
-            /* Medium Slate */
+            /* Texto secundario */
             --border-color: #e2e8f0;
-            /* Light Gray Border */
+            /* Borde gris claro */
             --border-glow: #94a3b8;
-            /* Active Gray Border */
+            /* Borde gris activo */
         }
 
         * {
@@ -349,16 +349,7 @@
             color: #0f172a;
         }
 
-        .motion-vector-card {
-            background: #f0fdf4;
-            border-left: 4px solid var(--accent-ra);
-            border-radius: 0 8px 8px 0;
-            padding: 1rem;
-            font-size: 0.9rem;
-            display: none;
-            align-items: center;
-            gap: 1rem;
-        }
+
 
         .noise-value {
             float: right;
@@ -701,7 +692,7 @@
 
                     for (let ty = 0; ty < Th; ty++) {
                         for (let tx = 0; tx < Tw; tx++) {
-                            // Sumamos +1 para evitar divisiones o logaritmos de cero debidos al ruido
+                            // Evitamos dividir por 0 si el ruido pone un pixel en negro
                             const a = sceneGray[(y + ty) * Sw + (x + tx)] + 1;
                             const b = templateGray[ty * Tw + tx] + 1;
 
@@ -711,7 +702,7 @@
                             logSum += Math.log(minVal / maxVal);
                         }
                     }
-                    // Mapeo a media geométrica
+                    // Aplicamos exponencial para volver a la escala original
                     const score = Math.exp(logSum / N);
                     if (score > maxRmScore) {
                         maxRmScore = score;
@@ -813,21 +804,7 @@
             document.getElementById('res-ncc-time').innerText = `${timeNcc.toFixed(2)} ms`;
             document.getElementById('res-ncc-complexity').innerText = `${formatFlops(6 * N * E)} Flops (Base)`;
 
-            // Configurar coordenadas del vector de movimiento si aplica
-            const example = document.getElementById('example-select').value;
-            if (example === 'video') {
-                const rx = referenceCoords.video.x;
-                const ry = referenceCoords.video.y;
-                document.getElementById('pos-reference').innerText = `(${rx}, ${ry})`;
-                // Usamos el resultado de Minimax Aditivo como la coordenada actual de movimiento detectada
-                document.getElementById('pos-current').innerText = `(${bestRaX}, ${bestRaY})`;
 
-                const dx = bestRaX - rx;
-                const dy = bestRaY - ry;
-                const dxSign = dx >= 0 ? '+' : '';
-                const dySign = dy >= 0 ? '+' : '';
-                document.getElementById('motion-vector').innerText = `[ΔX: ${dxSign}${dx}, ΔY: ${dySign}${dy}] px`;
-            }
         }
 
         function formatFlops(val) {
